@@ -1,3 +1,3 @@
 # Tutorials
 
-- Github简易教程
+- [Github简易教程](github_tutorial.md)
