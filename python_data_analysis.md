@@ -980,7 +980,7 @@ max 50.810000 10.000000 6.000000
 tips.plot(kind='scatter', x='total_bill', y='tip')
 # 小费金额与消费总金额存在着正相关的关系
 ```
-![](python_data_analysis_md_files/image.png?v=1&type=image)
+![](data/image.png?v=1&type=image)
 
 -- 性别不一样是否会影响小费的金额, 用柱状图, 通过布尔选择男女性别, 对小费数据进行平均后绘制柱状图
 ```
@@ -997,7 +997,7 @@ s.plot(kind='bar')
 ```
 ![](data/image10.png?v=1&type=image)
 
--- 其他字短语小费的关系也是类似的方法. 如小费与日期的关系
+-- 其他字段与小费的关系也是类似的方法. 如小费与日期的关系
 ```
 >>> tips['day'].unique()
 [Sun, Sat, Thur, Fri]
