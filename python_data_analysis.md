@@ -232,3 +232,318 @@ new_im = Image.fromarray(b.astype('uint8'))
 new_im.save('2.jpg')
 ```
 
+## pandas入门和实战
+
+### pandas数据结构
+- pandas两个基本的数据结构： Series和DataFrame
+- Series数据结构类似于一维数组，由一组数据和对应的索引组成
+```
+from pandas import Series, DataFrame
+import pandas as pd
+
+obj = Series([1,-2,3,-4])
+
+import pandas as pd
+
+>>> from pandas import Series, DataFrame
+
+obj = Series([1,-2,3,-4])
+>>> obj
+0 1
+1 -2
+2 3
+3 -4
+dtype: int64
+
+obj2 = Series([1,-2,3,-4], index=['a', 'b', 'c', 'd'])
+>>> obj2
+a 1
+b -2
+c 3
+d -4
+dtype: int64
+
+>>> obj2.values
+array([ 1, -2, 3, -4], dtype=int64)
+>>> obj2.index
+Index(['a', 'b', 'c', 'd'], dtype='object')
+
+obj2['b']
+obj2[['b', 'c']]
+```
+- 支持运算
+```
+obj2[obj2<0]
+obj2 * 2
+np.abs(obj2)
+```
+```
+data = {'张三': 92,
+        '李四': 78,
+        ‘王五’: 68,
+        '小明': 82 }
+obj3 = Series(data)
+
+names = ['张三', '李四'， ‘王五’, '小明']
+obj4 = Series(data, index=names)
+obj4.name = 'math' # Series对象和索引都有name属性
+obj4.index.name = 'students'
+```
+- DataFrame 数据结构为二维表格结构，类比excel
+```
+data = {
+    'name':['张三', '李四', '王五', '小明'],
+    'sex': ['female', 'female', 'male', 'male'],
+    'year':[2001, 2001, 2003, 2002],
+    'city':['北京', '上海', '广州', '北京']
+}
+df = DataFrame(data)
+>>> df
+name sex year city
+0 张三 female 2001 北京
+1 李四 female 2001 上海
+2 王五 male 2003 广州
+3 小明 male 2002 北京
+
+df = DataFrame(data, columns=['name', 'sex', 'year', 'city']) # 通过columns指定列索引的排列顺序
+df = DataFrame(data, columns=['name', 'sex', 'year', 'city'], index=['a', 'b', 'c', 'd']) 
+# 使用其他数据作为行索引
+```
+```
+data2 = {'sex':{'张三': 'female', '李四': 'female', '王五': 'male'},
+         'city':{'张三': '北京', '李四': '上海', '王五': '广州'}}
+df2 = DataFrame(data2)
+>>> df1
+      sex   city
+张三 female  北京
+李四 female  上海
+王五 male    广州
+```
+```
+df.index.name = 'id'
+df.columns.name = 'std_info'
+>>> df
+std_info name sex year city
+id
+0 张三 female 2001 北京
+1 李四 female 2001 上海
+2 王五 male 2003 广州
+3 小明 male 2002 北京
+
+>>> df.values  # values属性可将DataFrame数据转换为二维数组
+array([['张三 ', 'female', 2001, '北京 '],
+       ['李四 ', 'female', 2001, '上海 '],
+       ['王五 ', 'male', 2003, '广州 '],
+	   ['小明 ', 'male', 2002, '北京 ']], dtype=object)
+```
+- Series和DataFrame的行列索引都是索引对象, 管理轴标签和元数据, 不可修改
+
+### pandas索引操作
+- 重新索引, 不是给索引重命名, 而是对索引重新排序, 如果某个索引值不存在, 就会引入缺失值
+```
+obj = Series([1, -2, 3, -4], index = ['b', 'a', 'c', 'd'])
+obj2 = obj.reindex(['a', 'b', 'c', 'd', 'e'])
+>>> obj
+b 1
+a -2
+c 3
+d -4
+dtype: int64
+>>> obj2
+a -2.0
+b 1.0
+c 3.0
+d -4.0
+e NaN
+dtype: float64
+```
+- 如需对插入的缺失值进行填充, 可通过method函数实现, 参数值为ffill或pad时向前填充, 参数值为bfill或backfill时为向后填充
+```
+obj = Series([1, -2, 3, -4], index=[0, 2, 3, 5])
+obj2 = obj.reindex(range(6), method='ffill')
+>>> obj
+0 1
+2 -2
+3 3
+5 -4
+dtype: int64
+>>> obj2
+0 1
+1 1
+2 -2
+3 3
+4 3
+5 -4
+dtype: int64
+```
+- DataFrame数据的行列索引都可以重新索引
+```
+df = DataFrame(np.range(9).reshape(3,3), index=['a', 'c', 'd'], columns=['name', 'id', 'sex'])
+df2 = df.reindex(['a', 'b', 'c', 'd'])
+df3 = df.reindex(columns=['name', 'year', 'id'], fill_value=0) # full _value填充值
+```
+- 更换索引 `set_index`, `reset_index`
+```
+df2 = df.set_index('name')
+df3 = df2.reset_index()
+>>> df
+city name sex year
+0 北 京 张 三 female 2001
+1 上 海 李 四 female 2001
+2 广 州 王 五 male 2003
+3 北 京 小 明 male 2002
+>>> df2
+city sex year
+name
+张 三 北 京 female 2001
+李 四 上 海 female 2001
+王 五 广 州 male 2003
+小 明 北 京 male 2002
+>>> df3
+name city sex year
+0 张 三 北 京 female 2001
+1 李 四 上 海 female 2001
+2 王 五 广 州 male 2003
+3 小 明 北 京 male 2002
+```
+- 排序, 行索引会改变
+```
+data = {'name': ['张三', '李四', '王五', '小明'],
+        'grade': [68, 78, 63, 92]}
+df = DataFrame(data)
+df2 = df.sort_values(by='grade')
+>>> df
+name grade
+0 张 三 68
+1 李 四 78
+2 王 五 63
+3 小 明 92
+>>> df2
+name grade
+2 王 五 63
+0 张 三 68
+1 李 四 78
+3 小 明 92
+```
+- 原索引可用drop参数进行删除
+```
+df3 = df2.reset_index()
+df4 = df2.reset_index(drop=True)
+>>> df
+name grade
+0 张 三 68
+1 李 四 78
+2 王 五 63
+3 小 明 92
+>>> df2
+name grade
+2 王 五 63
+0 张 三 68
+1 李 四 78
+3 小 明 92
+>>> df3
+index name grade
+0 2 王 五 63
+1 0 张 三 68
+2 1 李 四 78
+3 3 小 明 92
+>>> df4
+name grade
+0 王 五 63
+1 张 三 68
+2 李 四 78
+3 小 明 92
+```
+- 索引和选取
+- Series切片
+```
+obj[0:2]
+obj['a':'c']
+```
+- DataFrame, 选取列不能使用切片, 选取行可用切片
+```
+df['city']
+df.name
+df[['city', 'sex']]
+```
+```
+df2 = df.set_index('name')
+df2[0:2]
+df2['李四': '王五']
+```
+- 想获取单独的几行, 通过loc和iloc方法实现. loc方法是安行索引标签选取数据; iloc方法是按行索引位置选取数据
+```
+df2.loc['张三']
+df2.loc[['张三', '王五']]
+df2.iloc[1]
+df2.iloc[[1, 3]]
+```
+- 选取行和列`.ix`
+```
+df2.ix[['张三', '王五'], 0:2]
+df2.ix[:,['sex', 'year']]
+df2.ix[[1,3], :]
+```
+- 布尔选择
+```
+df2['sex'] == 'female'
+df2[df2['sex'] == 'female']
+df2[(df2['sex']=='female') & (df2['city']=='北京')]
+```
+- 操作行和列
+- 增加行
+```
+new_data = {'city': '武汉', 
+            'name': '小李', 
+            'sex': 'male', 
+            'year': 2002}
+df = df.append(new_data, ignore_index=True) # 忽略索引值
+>>> df
+name sex year city
+0 张 三 female 2001 北 京
+1 李 四 female 2001 上 海
+2 王 五 male 2003 广 州
+3 小 明 male 2002 北 京
+4 小 李 male 2002 武 汉
+```
+- 增加列
+```
+df['class'] = 2018
+df['math'] = [92,78,63,85,56]
+>>> df
+name sex year city class math
+0 张 三 female 2001 北 京 2018 92
+1 李 四 female 2001 上 海 2018 78
+2 王 五 male 2003 广 州 2018 63
+3 小 明 male 2002 北 京 2018 85
+4 小 李 male 2002 武 汉 2018 56
+```
+- 删除
+```
+new_df= df.drop(2) # 删除行
+>>> new_df
+name sex year city class math
+0 张 三 female 2001 北 京 2018 92
+1 李 四 female 2001 上 海 2018 78
+3 小 明 male 2002 北 京 2018 85
+4 小 李 male 2002 武 汉 2018 56
+
+new_df = new_df.drop('class', axis=1) # 删除列
+>>> new_df
+name sex year city math
+0 张 三 female 2001 北 京 92
+1 李 四 female 2001 上 海 78
+3 小 明 male 2002 北 京 85
+4 小 李 male 2002 武 汉 56
+```
+- 修改(行列索引标签的修改`.rename`)
+```
+new_df.rename(index={3:2, 4:3}, columns={'math':'Math'}, inplace=True) # inplace可在原数据上修改
+>>> new_df
+name sex year city Math
+0 张 三 female 2001 北 京 92
+1 李 四 female 2001 上 海 78
+2 小 明 male 2002 北 京 85
+3 小 李 male 2002 武 汉 56
+```
+
