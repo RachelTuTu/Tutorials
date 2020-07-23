@@ -547,3 +547,501 @@ name sex year city Math
 3 小 李 male 2002 武 汉 56
 ```
 
+### pandas数据运算
+- 算数运算
+```
+obj1 = Series([3.2, 5.3, -4.4, -3.7], index=['a', 'c', 'g', 'f'])
+obj2 = Series([5.0, -2, 4.4, 3.4], index=['a', 'b', 'c', 'd'])
+obj1 + obj2
+>>> obj1
+a 3.2
+c 5.3
+g -4.4
+f -3.4
+dtype: float64
+>>> obj2
+a 5.0
+b -2.0
+c 4.4
+d 3.4
+dtype: float64
+>>> obj1+obj2
+a 8.2
+b NaN
+c 9.7
+d NaN
+f NaN
+g NaN
+dtype: float64
+```
+```
+df1 = DataFrame(np.arange(9).reshape(3,3), columns=['a', 'b', 'c'], index=['apple', 'tea', 'banana'])
+df2 = DataFrame(np.arange(9).reshape(3,3), columns=['a', 'b', 'd'], index=['apple', 'tea', 'coco'])
+df1 + df2
+>>> df1
+a b c
+apple 0 1 2
+tea 3 4 5
+banana 6 7 8
+>>> df2
+a b d
+apple 0 1 2
+tea 3 4 5
+coco 6 7 8
+>>> df1+df2
+a b c d
+apple 0.0 2.0 NaN NaN
+banana NaN NaN NaN NaN
+coco NaN NaN NaN NaN
+tea 6.0 8.0 NaN NaN
+```
+- DataFrame 和 Series数据在进行运算时, 先通过Series的索引匹配到相应的DataFrame列索引上, 然后沿行向下运算(广播)
+```
+s = df1.loc['apple']
+df1 - s
+>>> s
+a 0
+b 1
+c 2
+Name: apple, dtype: int32
+>>> df1-s
+a b c
+apple 0 0 0
+tea 3 3 3
+banana 6 6 6
+```
+- 函数应用和映射: 数据分析时可定义函数, 并应用到pandas数据中.
+- map函数用在Series的每个元素中;
+- apply函数用在DataFrame的行与列上;
+- applymap函数用在DataFrame的每个元素上
+```
+data= {'fruit': ['apple', 'orange', 'grape', 'banana'],
+       'price': ['25元', '42元', '36元', '14元']}
+df = DataFrame(data)
+
+def f(x):
+    return x.split('元')[0]
+
+df['price'] = df['price'].map(f)
+>>> df
+fruit price
+0 apple 25元
+1 orange 42元
+2 grape 36元
+3 banana 14元
+>>>df
+fruit price
+0 apple 25
+1 orange 42
+2 grape 36
+3 banana 14
+```
+```
+df2 = DataFrame(np.random.randn(3,3), columns=['a', 'b', 'c'], index=['app', 'win', 'mac'])
+>>> df2
+a b c
+app 0.133191 -1.184032 0.342867
+win 1.848022 0.444231 0.112673
+mac -0.829696 -0.876299 -0.111810
+
+f = lambda x:x.max()-x.min() # lambda为匿名函数,和定义好的函数一样,可以节省代码量
+df2.apply(f)
+>>> df2.apply(f)
+a 2.677718
+b 1.628263
+c 0.454678
+dtype: float64
+```
+```
+df2 = DataFrame(np.random.randn(3,3), columns=['a', 'b', 'c'], index=['app', 'win', 'mac'])
+df2.applymap(lambda x:'%.2f' %x)
+>>>df2
+a b c
+app 0.07 -0.24 -0.65
+win 1.69 -0.83 -1.49
+mac 1.77 -0.89 0.99
+```
+- 排序
+-- Series: `.sort_index`
+--DataFrame: `.sort_values(by='a')`
+
+- 汇总与统计
+```
+df = DataFrame(np.random.randn(9).reshape(3,3), columns=['a', 'b', 'c'])
+>>> df
+a b c
+0 -0.637101 0.304616 -1.381508
+1 0.587885 0.938603 0.064915
+2 0.593575 -1.495701 -0.843845
+
+>>> df.sum()
+a 0.544359
+b -0.252483
+c -2.160439
+dtype: float64
+
+>>> df.sum(axis=1)
+0 -1.713993
+1 1.591402
+2 -1.745972
+dtype: float64
+```
+- describe可对每个数值型列进行统计,常用于对数据的初步观察时使用
+```
+data = {'name':['张三 ', '李四 ', '王五 ', '小明 '],
+        'sex': ['female', 'female', 'male', 'male'],
+        'year':[2001, 2001, 2003, 2002],
+        'city':['北京 ', '上海 ', '广州 ', '北京 ']}
+df= DataFrame(data)
+df.describe()
+>>> df.describe()
+year
+count 4.000000
+mean 2001.750000
+std 0.957427
+min 2001.000000
+25% 2001.000000
+50% 2001.500000
+75% 2002.250000
+max 2003.000000
+```
+- 唯一值和值计数
+```
+obj= Series(['a', 'b', 'a', 'c', 'b'])
+obj.unique()
+obj.value_counts()
+
+>>> obj
+0 a
+1 b
+2 a
+3 c
+4 b
+dtype: object
+>>> obj.unique()
+array(['a', 'b', 'c'], dtype=object)
+>>> obj.value_counts()
+b 2
+a 2
+c 1
+dtype: int64
+```
+
+### 层次化索引
+- 层次化索引就是轴上有多个级别索引
+```
+obj= Series(np.random.randn(9), 
+            index=[['one','one','one','two','two','two','three','three','three'],
+                   ['a', 'b', 'c','a', 'b', 'c','a', 'b', 'c']])
+>>> obj
+one   a -2.309879
+      b -0.080024
+      c -0.320460
+two   a -1.084222
+      b 0.249383
+      c -0.626188
+three a 0.489591
+      b -0.543118
+      c -0.791813
+dtype: float64
+
+>>> obj.index  # 索引对象为MultiIndex对象
+MultiIndex([( 'one', 'a'),
+( 'one', 'b'),
+( 'one', 'c'),
+( 'two', 'a'),
+( 'two', 'b'),
+( 'two', 'c'),
+('three', 'a'),
+('three', 'b'),
+('three', 'c')],
+)
+
+>>> obj['two']
+a -1.084222
+b 0.249383
+c -0.626188
+dtype: float64
+
+>>> obj[:, 'a']
+one -2.309879
+two -1.084222
+three 0.489591
+dtype: float64
+```
+```
+df = DataFrame(np.arange(16).reshape(4,4),
+               index=[['one','one','two','two'], ['a','b','a','b']],
+               columns=[['apple','apple','orange','orange'], ['red','green','red','green']])
+>>> df
+    apple     orange
+    red green red green
+one a 0 1 2 3
+    b 4 5 6 7
+two a 8 9 10 11
+    b 12 13 14 15
+
+>>> df['apple']
+    red green
+one a 0 1
+    b 4 5
+two a 8 9
+    b 12 13
+```
+- 通过`swaplevel`可对层次化索引进行重排
+```
+df.swaplevel(0,1)
+>>> 
+      apple     orange
+      red green red green
+a one 0 1 2 3
+b one 4 5 6 7
+a two 8 9 10 11
+b two 12 13 14 15
+```
+- 汇总统计, 可通过level参数指定在某层次上进行汇总统计
+```
+>>> df
+    apple     orange
+    red green red green
+one a 0 1 2 3
+    b 4 5 6 7
+two a 8 9 10 11
+    b 12 13 14 15
+    
+>>> df.sum(level=0)
+    apple     orange
+    red green red green
+one 4 6 8 10
+two 20 22 24 26
+
+>>> df.sum(level=1, axis=1)
+      red green
+one a 2 4
+    b 10 12
+two a 18 20
+    b 26 28
+```
+
+### pandas可视化
+- 线形图
+```
+import numpy as np
+from pandas import Series, DataFrame
+import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+%matplotlib inline # 魔法函数,使用该函数绘制的图片会直接显示在notebook中
+
+s = Series(np.random.normal(size=10))
+s.plot()
+plt.show()
+```
+\
+![](data/image1.png?v=1&type=image)
+
+```
+df = DataFrame({'normal': np.random.normal(size=100),
+                'gamma': np.random.gamma(1, size=100),
+                'poisson': np.random.poisson(size=100)})
+df.cumsum().plot()
+plt.show()
+```
+![](data/image2.png?v=1&type=image)
+
+- 柱状图. 只需在plot函数中加入`kind='bar'`. 如类别较多,可会知水平柱状图`kind='barh'`, `stacted=True`可绘制堆积柱状图
+```
+data = {'name': ['张三','李四','王五','小明','Peter'],
+        'sex': ['female','female','male','male','male'],
+        'city': ['北京','上海','广州','北京','北京']}
+df = DataFrame(data)
+>>> df['sex'].value_counts()
+male 3
+female 2
+Name: sex, dtype: int64
+
+df['sex'].value_counts().plot(kind='bar')
+```
+![](data/image3.png?v=1&type=image)
+
+```
+df2 = DataFrame(np.random.randint(0,100,size=(3,3)),
+                index=['one','two','three'],
+                columns=['A','B','C'])
+>>> df2
+A B C
+one 36 51 98
+two 62 70 46
+three 91 63 8
+
+df2.plot(kind='barh')
+```
+![](data/image4.png?v=1&type=image)
+
+```
+df2.plot(kind='barh', stacked=True, alpha=0.5)
+```
+![](data/image5.png?v=1&type=image)
+
+- 直方图和密度图
+-- 直方图 `grid`添加网格, `bins`将值分为多少段, 默认为16
+```
+s = Series(np.random.normal(size=100))
+s.hist(bins=20, grid=False)
+```
+![](data/image6.png?v=1&type=image)
+
+-- 密度图: 核密度估计(kernel Density Estimate, KDE)是对振实密度的估计, 即将数据的分布近似为一组核(如正态分布)
+```
+s.plot(kind='kde')
+```
+![](data/image7.png?v=1&type=image)
+
+- 散点图
+```
+df3 = DataFrame(np.arange(10), columns=['X'])
+df3['Y'] = 2 * df3['X'] + 5
+>>> df3
+X Y
+0 0 5
+1 1 7
+2 2 9
+3 3 11
+4 4 13
+5 5 15
+6 6 17
+7 7 19
+8 8 21
+9 9 23
+
+df3.plot(kind='scatter', x='X', y='Y')
+```
+![](data/image8.png?v=1&type=image)
+
+### 综合示例--小费数据集
+- 数据分析流程
+-- 收集数据
+-- 定义问题
+-- 数据清洗与整理
+-- 数据探索
+-- 数据展示
+- 数据来源: seaborn为python第三方数据库,用于绘图
+```
+import numpy as np
+from pandas import Series, DataFrame
+import pandas as pd
+import seaborn as sns
+tips = sns.load_dataset('tips')
+tips.head()   # 返回前五条数据,也可指定返回数据行数
+
+# total_bill列为消费总金额; tip列为小费金额; sex列为顾客性别; smoker列为顾客是否抽烟; 
+# day为消费的星期;size列为聚餐人数
+
+>>> tips.head()
+total_bill tip sex smoker day time size
+0 16.99 1.01 Female No Sun Dinner 2
+1 10.34 1.66 Male No Sun Dinner 3
+2 21.01 3.50 Male No Sun Dinner 3
+3 23.68 3.31 Male No Sun Dinner 2
+4 24.59 3.61 Female No Sun Dinner 4
+```
+
+- 定义问题
+-- 消费金额与消费总金额是否存在相关性
+-- 性别, 是否吸烟, 星期几, 中/晚餐, 聚餐人数和小费金额是否有一定的关联
+-- 小费金额站消费总金额的百分比服从正态分布吗
+
+- 数据清洗
+```
+# 对数据进行简单描述,看是否有缺失值或异常值
+>>> tips.shape
+(244, 7)
+
+>>> tips.describe()
+total_bill tip size
+count 244.000000 244.000000 244.000000
+mean 19.785943 2.998279 2.569672
+std 8.902412 1.383638 0.951100
+min 3.070000 1.000000 1.000000
+25% 13.347500 2.000000 2.000000
+50% 17.795000 2.900000 2.000000
+75% 24.127500 3.562500 3.000000
+max 50.810000 10.000000 6.000000
+
+>>> tips.info()
+```
+![](data/image9.png?v=1&type=image)
+
+总共有244个数据, 通过统计暂时看不出是否有缺失值. 通过打印数据的info信息可以看出每列数据的类型和缺失值. 本例中没有缺失值
+
+- 数据探索
+-- 分析小费金额与消费总金额, 是否有关联, 绘制散点图
+```
+tips.plot(kind='scatter', x='total_bill', y='tip')
+# 小费金额与消费总金额存在着正相关的关系
+```
+![](python_data_analysis_md_files/image.png?v=1&type=image)
+
+-- 性别不一样是否会影响小费的金额, 用柱状图, 通过布尔选择男女性别, 对小费数据进行平均后绘制柱状图
+```
+male_tip = tips[tips['sex']=='Male']['tip'].mean()
+female_tip = tips[tips['sex']=='Female']['tip'].mean()
+s = Series([male_tip, female_tip], index=['male', 'female'])
+>>> s
+male 3.089618
+female 2.833448
+dtype: float64
+
+s.plot(kind='bar')
+# 女性消费金额小于男性消费金额
+```
+![](data/image10.png?v=1&type=image)
+
+-- 其他字短语小费的关系也是类似的方法. 如小费与日期的关系
+```
+>>> tips['day'].unique()
+[Sun, Sat, Thur, Fri]
+Categories (4, object): [Sun, Sat, Thur, Fri]
+
+sun = tips[tips['day']=='Sun']['tip'].mean()
+sat = tips[tips['day']=='Sat']['tip'].mean()
+thur = tips[tips['day']=='Thur']['tip'].mean()
+fri = tips[tips['day']=='Fri']['tip'].mean()
+
+s = Series([thur, fri, sat, sun], index=['Thur', 'Fri', 'Sat', 'Sun'])
+>>> s
+Thur 2.771452
+Fri 2.734737
+Sat 2.993103
+Sun 3.255132
+dtype: float64
+
+s.plot(kind='bar')
+
+# 周六 周日的小费比周四 周五的小费高
+```
+![](data/image11.png?v=1&type=image)
+
+-- 分析小费百分比的分布情况
+```
+tips['percent_tip'] = tips['tip'] / (tips['total_bill'] + tips['tip'])
+tips.head(10)
+
+total_bill tip sex smoker day time size percent_tip
+0 16.99 1.01 Female No Sun Dinner 2 0.056111
+1 10.34 1.66 Male No Sun Dinner 3 0.138333
+2 21.01 3.50 Male No Sun Dinner 3 0.142799
+3 23.68 3.31 Male No Sun Dinner 2 0.122638
+4 24.59 3.61 Female No Sun Dinner 4 0.128014
+5 25.29 4.71 Male No Sun Dinner 4 0.157000
+6 8.77 2.00 Male No Sun Dinner 2 0.185701
+7 26.88 3.12 Male No Sun Dinner 4 0.104000
+8 15.04 1.96 Male No Sun Dinner 2 0.115294
+9 14.78 3.23 Male No Sun Dinner 2 0.179345
+
+tips['percent_tip'].hist(bins=50, grid=True)
+
+# 基本上符合正态分布
+
+```
+![](data/image12.png?v=1&type=image)
