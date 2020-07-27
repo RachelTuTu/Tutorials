@@ -1,7 +1,9 @@
 # 从零开始学python数据分析
+- [numpy入门和实战](#jump)
+- [pandas入门和实战](#jump)
 
-## numpy入门和实战
 
+## <span id="jump">numpy入门和实战</span>
 ### 创建ndarray数组
 
 ```
@@ -232,7 +234,7 @@ new_im = Image.fromarray(b.astype('uint8'))
 new_im.save('2.jpg')
 ```
 
-## pandas入门和实战
+## <span id="jump">pandas入门和实战</span>
 
 ### pandas数据结构
 - pandas两个基本的数据结构： Series和DataFrame
@@ -1045,3 +1047,235 @@ tips['percent_tip'].hist(bins=50, grid=True)
 
 ```
 ![](data/image12.png?v=1&type=image)
+
+
+## 外部数据的读取与存储
+### 文本数据的读取与存储
+- CSV文件的读取
+-- `read_csv`: 从文件中加载带分隔符的数据, 默认分隔符为逗号
+-- `read_table`: 默认分隔符为制表符
+```
+# 创建csv文件
+import csv
+fp = open('D:\myproject\ch4ex1.csv', 'w', newline='')
+writer = csv.writer(fp)
+writer.writerow(('id', 'name', 'grade'))
+writer.writerow(('1', 'lucky', '87'))
+writer.writerow(('2', 'peter', '92'))
+writer.writerow(('3', 'lili', '85'))
+fp.close()
+
+# 查看数据
+type D:\myproject\ch4ex1.csv  # linux下是cat
+id,name,grade
+1,lucky,87
+2,peter,92
+3,lili,85
+
+#读csv文件
+import pandas as pd
+df = pd.read_csv(open('D:\myproject\ch4ex1.csv'))
+>>> df
+id name grade
+0 1 lucky 87
+1 2 peter 92
+2 3 lili 85
+
+df = pd.read_table(open('D:\myproject\ch4ex1.csv'), sep=',') # 指定分隔符
+```
+```
+# 指定列作为索引
+df = pd.read_csv(open('D:\myproject\ch4ex1.csv'), index_col='id')
+>>> df
+  name grade
+id
+1 lucky 87
+2 peter 92
+3 lili 85
+```
+```
+# 多列层次化索引
+school,id,name,grade
+a,1,lucky,87
+a,2,peter,92
+a,3,lili,85
+b,1,coco,78
+b,2,kevin,87
+b,3,heven,96
+
+df = pd.reand_csv(open('aa.csv'), index_col=[0, 'id'])
+>>> df
+          name grade
+school id
+a       1 lucky 87
+        2 peter 92
+        3 lili 85
+b       1 coco 78
+        2 kevin 87
+        3 heven 96
+```
+```
+# 标题行设置
+# 默认读取会指定第一行为标题行
+df = pd.read_csv(open('ch4ex3.csv'))
+  1 lucky 87
+0 2 peter 92
+1 3 lili 85
+
+# 通过header参数分配默认的标题行
+df = pd.read_csv(open('ch4ex3.csv'), header=None)
+>>> df
+  0 1     2
+0 1 lucky 87
+1 2 peter 92
+2 3 lili 85
+
+# 通过names参数指定列名
+df = pd.read_csv(open('ch4ex3.csv'), names=['id', 'name', 'grade'])
+>>> df
+  id name grade
+0 1 lucky 87
+1 2 peter 92
+2 3 lili 85
+```
+```
+# 自定义读取, 跳过一些行
+df = pd.read_csv(open('ch4ex3.csv'), skiprows=[0,5])
+
+# 只读取部分数据
+df = pd.read_csv(open('ch4ex3.csv'), nrows=10)
+
+# 选取部分列
+df = pd.read_csv(open('ch4ex3.csv'), usecols=['Survived', 'Sex'])
+
+# 逐步读取文件
+chunker = pd.read_csv(open('titanic.csv', chunksize=100)) # 返回可迭代的TextFileReader
+# 通过迭代对sex列进行统计
+
+chunker = pd.read_csv(open('titanic.csv', chunksize=100)) # 返回可迭代的TextFileReader
+sex = Series([])
+for i in chunker:
+    sex=sex.add(i['Sex'].value_counts(), fill_value=0)
+>>> sex
+>
+male 577.0
+female 314.0
+dtype: float64
+```
+
+- txt文件的读取
+```
+# 创建txt文件, 分隔符为?
+fp = open('1.txt', 'a+')
+fp.writelines('id?name?grade'+'\n')
+fp.writelines('1?lucky?87'+'\n')
+fp.writelines('2?peter?92'+'\n')
+fp.writelines('3?lili?85'+'\n')
+fp.close
+
+df = pd.read_table(open('1.txt'), sep='?')  # sep 指定分隔符
+df = pd.read_table(open('1.txt'), sep='\s+') # 适用于没有固定分隔符的情况
+```
+
+- 文本数据的存储
+```
+df.to_csv('out.csv')  # 以逗号为分隔符
+df.to_csv('out1.csv', sep='?')  # sep指定分隔符
+df.to_csv('out2.csv', index=False) # 通过设置index和header分别处理行和列索引
+```
+
+- JSON的读取与存储
+-- json数据是一种轻量级的数据交换合适
+```
+import json
+f = open('1.json')
+obj = f.read()
+result = json.loads(obj)
+
+# 将数据输入DataFrame构造器,完成对JSON数据的读取
+df = DataFrame(result)
+
+# 另一种读取方法
+df = pd.read_json('1.json')
+
+df = df.sort_index()   # 读取时会乱序, 重新排序
+
+# 对DataFrame进行存储
+df.to_json('2.json')
+```
+
+- Excel数据的读取与存储
+```
+# 读取
+df = pd.read_excel('1.xlsx', sheetname='Sheet1') # sheetname指定读取的工作簿
+
+# 存储
+df.to_excel('2.xlsx', sheetname='out', index=None)
+```
+
+### Web数据库读取
+- 读取html表格
+```
+import pandas as pd
+df = pd.read_html('http://worldcup.2014.163.com/schedule/')
+```
+
+- 网络爬虫. 把爬虫到的数据转换成DataFrame数据格式
+```
+# 爬虫代码
+import requests  
+from bs4 import BeautifulSoup  
+from pandas import DataFrame  
+
+data = []  
+wb_data = requests.get('http://www.kugou.com/yy/rank/home/1-8888.html')  
+soup = BeautifulSoup(wb_data.text, 'lxml')  
+ranks = soup.select('span.pc_temp_num')  
+titles = soup.select('div.pc_temp_songlist > ul > li > a')  
+times = soup.select('span.pc_temp_tips_r > span')  
+for rank, title, time in zip(ranks, titles, times):  
+    a = {  
+        'rank': rank.get_text().strip(),  
+        'singer': title.get_text().split('-')[0],  
+        'song': title.get_text().split('-')[1],  
+        'time': time.get_text().strip()  
+    }  
+    data.append(a)  
+print(data)  
+  
+df = DataFrame(data)  
+print(df)
+
+[{'rank': '1', 'singer': '李荣浩 ', 'song': ' 爸爸妈妈 ', 'time': '4:44'}, {'rank': '2', 'singer': '华莎 ', 'song': ' 마리아(María)', 'time': '3:19'}, {'rank': '3', 'singer': '白小白 ', 'song': ' 我爱你不问归期 ', 'time': '4:14'}, {'rank': '4', 'singer': 'Ava Max ', 'song': ' Salt', 'time': '3:02'}, {'rank': '5', 'singer':'王靖雯不胖 ', 'song': ' 爱,存在 ', 'time': '4:38'}, {'rank': '6', 'singer': '张韶涵 ', 'song': ' 破 茧 ', 'time': '3:31'}, {'rank': '7', 'singer': '伊格赛听 、 叶里 ', 'song': ' 谪仙 ', 'time': '2:58'}, {'rank': '8', 'singer': '任然 ', 'song': ' 飞鸟和蝉 ', 'time': '4:56'}, {'rank': '9', 'singer': '刘大壮 ', 'song': ' 信仰(吉他版 )', 'time': '2:06'}, {'rank': '10', 'singer': '任然 ', 'song': ' 无人之岛 ', 'time': '4:45'}, {'rank': '11', 'singer': '海来阿木 ', 'song': ' 你的万水千山 ', 'time': '4:09'}, {'rank': '12', 'singer': '阿悠悠 ', 'song': ' 旧梦一场 ', 'time': '2:54'}, {'rank': '13', 'singer': '蔡徐坤 ', 'song': ' 情人 ', 'time': '3:15'}, {'rank': '14', 'singer': '蒋雪儿 ', 'song': ' 莫问归期 ', 'time': '3:39'}, {'rank': '15', 'singer': '蔡健雅 ', 'song': ' 红色高跟鞋 ', 'time': '3:26'}, {'rank': '16', 'singer': '程响 ', 'song': ' 想起了你 ', 'time': '3:36'},{'rank': '17', 'singer': '添儿呗 ', 'song': ' 烟火人间 ', 'time': '4:25'}, {'rank': '18', 'singer': '等什么君 ', 'song': ' 辞九门回忆 ', 'time': '4:00'}, {'rank': '19', 'singer': '王韵', 'song': ' 思念成沙 ', 'time':'4:46'}, {'rank': '20', 'singer': '纸砚 zyan ', 'song': ' 画皮 ', 'time': '3:44'}, {'rank': '21', 'singer': '刘大壮 ', 'song': ' 一吻天荒 (吉他版 )', 'time': '4:04'}, {'rank': '22', 'singer': '松紧先生 （李宗锦） ', 'song': ' 你走 ', 'time': '4:04'}]
+
+rank singer        song time
+0 1 李荣浩          爸爸妈妈         4:44
+1 2 华莎            마리아 (María)  3:19 
+2 3 白小白          我爱你不问归期    4:14
+3 4 Ava Max        Salt            3:02
+4 5 王靖雯          不胖爱,存在       4:38
+5 6 张韶涵          破茧             3:31
+6 7 伊格赛听、叶里   谪仙              2:58
+7 8 任然           飞鸟和蝉          4:56
+8 9 刘大壮          信仰(吉他版)      2:06
+9 10 任然           无人之岛         4:45
+10 11 海来阿木      你的万水千山       4:09
+11 12 阿悠悠        旧梦一场          2:54
+12 13 蔡徐坤        情人              3:15
+13 14 蒋雪儿        莫问归期          3:39
+14 15 蔡健雅        红色高跟鞋        3:26
+15 16 程响          想起了你          3:36
+16 17 添儿呗        烟火人间          4:25
+17 18 等什么君      辞九门回忆         4:00
+18 19 王韵          思念成沙          4:46
+19 20 纸砚zyan      画皮              3:44
+20 21 刘大壮        一吻天荒(吉他版)   4:04
+21 22 松紧先生（李宗锦） 你走          4:04
+```
+
+
+
+
+
+
+
