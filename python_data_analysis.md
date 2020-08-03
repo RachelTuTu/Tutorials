@@ -1,6 +1,8 @@
 # 从零开始学python数据分析
 - [numpy入门和实战](#jump)
 - [pandas入门和实战](#jump)
+- [外部数据的读取与存储](#jump)
+- [数据清洗与整理](#jump)
 
 
 ## <span id="jump">numpy入门和实战</span>
@@ -1049,7 +1051,7 @@ tips['percent_tip'].hist(bins=50, grid=True)
 ![](data/image12.png?v=1&type=image)
 
 
-## 外部数据的读取与存储
+## <span id="jump">外部数据的读取与存储</span>
 ### 文本数据的读取与存储
 - CSV文件的读取
 -- `read_csv`: 从文件中加载带分隔符的数据, 默认分隔符为逗号
@@ -1273,9 +1275,199 @@ rank singer        song time
 21 22 松紧先生（李宗锦） 你走          4:04
 ```
 
+## <span id="jump">数据清洗与整理</span>
+### 数据清洗
+- 处理缺失值
+```
+# 创建有缺失值的数据
+from pandas import Series, DataFrame
+import pandas a spd
+import numpy as np
 
+df1 = DataFrame([[3,5,3], [1,6,np.nan], ['lili', np.nan,'pop'], [np.nan,'a','b'])
+>>> df1
+  0    1   2
+0 3    5   3
+1 1    6   NaN
+2 lili NaN pop
+3 NaN  a   b
 
+>>> df1.isnull()  # True为缺失值
+  0     1     2
+0 False False False
+1 False False True
+2 False True  False
+3 True  False False
 
+>>> df1.notnull() # False为缺失值
+  0     1     2
+0 True  True  True
+1 True  True  False
+2 True  False True
+3 False True  True
 
+>>> df1.isnull().sum() # 每列的缺失值数量
+0 1
+1 1
+2 1
+dtype: int64
 
+>>> df1.isnull().sum().sum() #整个表的缺失值数量
+3
 
+df1.info() # 也可看到每行缺失值信息
+```
+
+- 删除缺失值
+```
+df1.dropna() # 删除具有缺失值的行
+>>> df1.dropna()
+  0 1 2
+0 3 5 3
+
+df1.dropna(how='all') # 只删除全为缺失值的行
+df2.dropna(how='all', axis=1) # 删除列
+```
+
+- 填充缺失值
+```
+# 将缺失值填充为常数值
+df1.fillna(0)
+
+>>> df2
+  0   1   2   3
+0 0.0 1.0 2.0 NaN
+1 4.0 5.0 6.0 NaN
+2 NaN NaN NaN NaN
+
+# 在fillna中传入字典结构数据, 可以针对不同列填充不同值
+>>> df2.fillna({1:6, 3:0}, inplace=True)
+  0   1   2   3
+0 0.0 1.0 2.0 0.0
+1 4.0 5.0 6.0 0.0
+2 NaN 6.0 NaN 0.0
+
+>>> df2.fillna(method='ffill')
+0 1 2 3
+0 0.0 1.0 2.0 0.0
+1 4.0 5.0 6.0 0.0
+2 4.0 6.0 6.0 0.0
+
+df2[0]=df2[0].fillna(df2[0].mean()) # 填充平均值
+>>> df2
+0 1 2 3
+0 0.0 1.0 2.0 0.0
+1 4.0 5.0 6.0 0.0
+2 2.0 6.0 NaN 0.0
+```
+
+- 移除重复数据
+```
+>>> df1
+  name  sex   year  city
+0 张三  female 2001  北京
+1 李四  male   2002  上海
+2 张三  female 2001  北京
+3 小明  male   2002  北京
+
+>>> df1.duplicated() # 判断是否为重复数据
+0 False
+1 False
+2 True
+3 False
+dtype: bool
+
+>>> df1.drop_duplicates() # 删除多余的重复项
+  name  sex   year   city
+0 张三  female 2001  北京
+1 李四  male   2002  上海
+3 小明  male   2002  北京
+
+>>> df1.drop_duplicates(['sex', 'year']) # 指定判断重复列
+  name  sex   year   city
+0 张三  female 2001  北京
+1 李四  male   2002  上海
+``` 
+
+- 替换值
+```
+df1.replace('', '不详')
+df1.replace(['', 2001], ['不详', 2002]) # ''-->'不详', 2001-->2002
+```
+
+- 利用函数或映射进行数据转换
+```
+data = {'name':['张三', '李四', '王五', '小明'], 
+        'math': [79, 52, 63, 92]}
+df = DataFrame(data)
+>>> df
+  name math
+0 张 三 79
+1 李 四 52
+2 王 五 63
+3 小 明 92
+
+def f(x):
+    if x >= 90:
+        return '优秀'
+    elif 70<=x<=90:
+        return '良好'
+    elif 60<=x<=70:
+        return '合格'
+    else:
+        return '不合格'
+
+df['class'] = df['math'].map(f)
+```
+
+- 检测异常值: 可通过画图找到离群点 (并非所有离群点都是异常值)
+- 虚拟变量: 在计算中需用数值型数据, 因此需将分类变量转化为虚拟变量(哑变量, 即0,1 矩阵)
+```
+df = DataFrame({'朝向': ['东', '南', '东', '西', '北'],
+                '价格': [1200, 2100, 2300, 2900, 1400]})
+>>> df
+  朝向 价格
+0 东 1200
+1 南 2100
+2 东 2300
+3 西 2900
+4 北 1400
+
+>>> pd.get_dummies(df['朝向'])
+  东 北 南 西
+0 1 0 0 0
+1 0 0 1 0
+2 1 0 0 0
+3 0 0 0 1
+4 0 1 0 0
+
+# 对于多类别数据,需用apply函数实现
+df = DataFrame({'朝向': ['东/北', '西/南', '东', '西/北', '北'],
+                '价格': [1200, 2100, 2300, 2900, 1400]})
+>>> df
+  朝向   价格
+0 东/北  1200
+1 西/南  2100
+2 东     2300
+3 西/北  2900
+4 北     1400
+
+>>> dummies = df['朝向'].apply(lambda x:Series(x.split('/')).value_counts())
+
+>>> dummies
+东 北 南 西
+0 1.0 1.0 NaN NaN
+1 NaN NaN 1.0 1.0
+2 1.0 NaN NaN NaN
+3 NaN 1.0 NaN 1.0
+4 NaN 1.0 NaN NaN
+
+dummies = dummies.fillna(0).astype(int)
+>>> dummies
+东 北 南 西
+0 1 1 0 0
+1 0 0 1 1
+2 1 0 0 0
+3 0 1 0 1
+4 0 1 0 0
+```
