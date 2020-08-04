@@ -1471,3 +1471,421 @@ dummies = dummies.fillna(0).astype(int)
 3 0 1 0 1
 4 0 1 0 0
 ```
+
+### 数据合并和重塑
+- merge合并
+-- left: 参与合并的左侧DataFrame
+-- right: 参与合并的右侧DataFrame
+-- how: 连接方法, inner, left, right, outer
+-- on: 用于连接的列名
+-- left_on: 左侧DataFrame中用于连接键的列
+-- right_on:右侧DataFrame中用于连接键的列
+-- left_index: 左侧DataFrame的行索引作为连接键
+-- right_index: 右侧DataFrame的行索引作为连接键
+-- sort: 合并后会对数据排序, 默认为True
+-- suffixes: 修改重命名
+
+```
+price = DataFrame({'fruit': ['apple', 'banana', 'orange'], 
+                   'price': [23, 32, 45]})
+amount = DataFrame({'fruit': ['apple', 'banana', 'apple', 'apple', 'banana', 'pear'], 
+                    'amount': [5,3,6,3,5,7]})
+
+>>> price
+fruit price
+0 apple 23
+1 banana 32
+2 orange 45
+
+>>> amount
+fruit amount
+0 apple 5
+1 banana 3
+2 apple 6
+3 apple 3
+4 banana 5
+5 pear 7
+
+>>> pd.merge(amount, price)
+fruit amount price
+0 apple 5 23
+1 apple 6 23
+2 apple 3 23
+3 banana 3 32
+4 banana 5 32
+
+# 如果两个DataFrame的列名不一样, 也可以单独指定列名
+# 以下两例与pd.merge(amount, price)等价, 因为amount和price都有fruit列
+pd.merge(amount, price, on='fruit')
+pd.merge(amount, price, left_on='fruit', right_on='fruit')
+
+# merge默认为内连接(inner),即返回交集. 通过how参数可以选择连接方法: 左连接(left), 右连接(right)和外连接(outer)
+>>> pd.merge(amount, price, how='left')
+fruit amount price
+0 apple 5 23.0
+1 banana 3 32.0
+2 apple 6 23.0
+3 apple 3 23.0
+4 banana 5 32.0
+5 pear 7 NaN
+
+>>> pd.merge(amount, price, how='right')
+fruit amount price
+0 apple 5.0 23
+1 apple 6.0 23
+2 apple 3.0 23
+3 banana 3.0 32
+4 banana 5.0 32
+5 orange NaN 45
+
+>>> pd.merge(amount, price, how='outer')
+fruit amount price
+0 apple 5.0 23.0
+1 apple 6.0 23.0
+2 apple 3.0 23.0
+3 banana 3.0 32.0
+4 banana 5.0 32.0
+5 pear 7.0 NaN
+6 orange NaN 45.0
+
+# 可通过多个键进行合并, 即传入连接键组成的列表
+>>> left = DataFrame({'key1': ['one', 'one', 'two'], 'key2':['a', 'b', 'a'], 'val1':[2,3,4]})
+>>> right = DataFrame({'key1': ['one', 'one', 'two', 'two'], 'key2':['a', 'a', 'a', 'b'], 'val2': [5,6,7,8]})
+
+>>> left
+key1 key2 val1
+0 one a 2
+1 one b 3
+2 two a 4
+
+>>> right
+key1 key2 val2
+0 one a 5
+1 one a 6
+2 two a 7
+3 two b 8
+
+>>> pd.merge(left, right, on=['key1', 'key2'], how='outer')
+key1 key2 val1 val2
+0 one a 2.0 5.0
+1 one a 2.0 6.0
+2 one b 3.0 NaN
+3 two a 4.0 7.0
+4 two b NaN 8.0
+
+# 人为修改合并后的重复列名
+>>> pd.merge(left, right, on='key1')
+key1 key2_x val1 key2_y val2
+0 one a 2 a 5
+1 one a 2 a 6
+2 one b 3 a 5
+3 one b 3 a 6
+4 two a 4 a 7
+5 two a 4 b 8
+
+>>> pd.merge(left, right, on='key1', suffixes=('_left', '_right'))
+key1 key2_left val1 key2_right val2
+0 one a 2 a 5
+1 one a 2 a 6
+2 one b 3 a 5
+3 one b 3 a 6
+4 two a 4 a 7
+5 two a 4 b 8
+
+# 有时连接的键位于DataFrame的行索引上, 可通过传入left_index=True或者right_index=True指定将索引作为及连接键来使用
+>>> left2 = DataFrame({'key': ['a', 'a', 'b', 'b', 'c'], 'val1': [0,1,2,3,4]})
+>>> right2 = DataFrame({'val2': [5,7]}, index=['a', 'b'])
+
+>>> left2
+key val1
+0 a 0
+1 a 1
+2 b 2
+3 b 3
+4 c 4
+
+>>> right2
+val2
+a 5
+b 7
+
+>>> pd.merge(left2, right2, left_on='key', right_index=True)
+key val1 val2
+0 a 0 5
+1 a 1 5
+2 b 2 7
+3 b 3 7
+
+# join可以快速完成按索引合并
+>>> left3
+val1
+a 0
+b 1
+a 2
+c 3
+
+>>> right2
+val2
+a 5
+b 7
+
+>>> left3.join(right2, how='outer')
+ val1 val2
+a 0   5.0
+a 2   5.0
+b 1   7.0
+c 3   NaN
+```
+
+- concat连接: 如果需要合并的DataFrame之间没有连接键, 就不能使用merge方法了, 这是可通过concat方法实现. 默认concat按行方向堆叠数据(axis=0)
+```
+s1 = Series([0,1], index=['a', 'b'])
+s2 = Series([2,3], index=['c', 'd'])
+s3 = Series([4,5], index=['e', 'f'])
+>>> s1
+a 0
+b 1
+dtype: int64
+
+>>> s2
+c 2
+d 3
+dtype: int64
+
+>>> s3
+e 4
+f 5
+dtype: int64
+
+>>> pd.concat([s1,s2,s3])
+a 0
+b 1
+c 2
+d 3
+e 4
+f 5
+dtype: int64
+
+>>> pd.concat([s1,s2,s3], axis=1)
+0 1 2
+a 0.0 NaN NaN
+b 1.0 NaN NaN
+c NaN 2.0 NaN
+d NaN 3.0 NaN
+e NaN NaN 4.0
+f NaN NaN 5.0
+
+# 这种连接方式为外连接(并集), 通过传入join='inner'可以实现内连接, 
+pd.concat([s1,s3], axis=1, join='inner')
+
+# 创建层次化索引
+pd.concat([s1, s3], keys=['one', 'two'])
+pd.concat([s1, s3], axis=1, keys=['one', 'two'])
+
+# 除了传入列表,通过字典数据也可以完成连接, 字典的键就是keys的值
+>>> df1 = DataFrame({'val1': [0,1,2]}, index=['a', 'b', 'c'])
+
+>>> df2 = DataFrame({'val2': [5,7]}, index=['a', 'b'])
+
+>>> df1
+val1
+a 0
+b 1
+c 2
+
+>>> df2
+val2
+a 5
+b 7
+
+>>> pd.concat([df1, df2], axis=1, keys=['one', 'two'])
+one two
+val1 val2
+a 0 5.0
+b 1 7.0
+c 2 NaN
+
+>>> pd.concat({'one':df1, 'two':df2}, axis=1)
+one two
+val1 val2
+a 0 5.0
+b 1 7.0
+c 2 NaN
+
+# 当行索引类似时, 通过默认连接会出现重复行索引, 可通过ignore_index=True 忽略索引,实现重排索引的效果
+>>> df1 = DataFrame(np.random.randn(3,4), columns=['a,', 'b', 'c', 'd'])
+>>> df2 = DataFrame(np.random.randn(2,2), columns=['d', 'c'])
+
+>>> df1
+a, b c d
+0 0.039236 0.009585 0.067275 1.666451
+1 0.082946 0.140290 -1.378659 0.407364
+2 2.624491 -0.015154 -0.335493 0.322617
+
+>>> df2
+d c
+0 -0.857774 -0.327858
+1 0.306091 -1.662651
+
+>>> pd.concat([df1,df2])
+a, b c d
+0 0.039236 0.009585 0.067275 1.666451
+1 0.082946 0.140290 -1.378659 0.407364
+2 2.624491 -0.015154 -0.335493 0.322617
+0 NaN NaN -0.327858 -0.857774
+1 NaN NaN -1.662651 0.306091
+
+>>> pd.concat([df1,df2], ignore_index=True)
+a, b c d
+0 0.039236 0.009585 0.067275 1.666451
+1 0.082946 0.140290 -1.378659 0.407364
+2 2.624491 -0.015154 -0.335493 0.322617
+3 NaN NaN -0.327858 -0.857774
+4 NaN NaN -1.662651 0.306091
+```
+
+- combine_first合并: 如果需要合并连个DataFrame存在重复的索引, 若使用`merge`和`concat`都不能准确地解决问题, 此时需要使用`combine_first`方法
+```
+>>> df1
+a b
+0 3.0 NaN
+1 NaN 4.0
+2 6.0 6.0
+3 NaN NaN
+
+>>> df2
+a b
+0 0 0
+1 1 1
+2 2 2
+3 3 3
+4 4 4
+
+>>> df1.combine_first(df2)
+  a   b
+0 3.0 0.0
+1 1.0 4.0
+2 6.0 6.0
+3 3.0 3.0
+4 4.0 4.0
+```
+
+- 数据重塑: 用于重排DataFrame, 有两个常用方法: `stack`方法用于将DataFrame的列旋转为行; `unstack`方法用于将DataFrame的行旋转为列.
+```
+df = DataFrame(np.arange(9).reshape(3,3), index=['a', 'b', 'c'], columns=['one', 'two', 'three'])
+df.index.name='alph'
+df.columns.name = 'number'
+
+>>> df
+number one two three
+alph
+   a   0   1   2
+   b   3   4   5
+   c   6   7   8
+
+result = df.stack()
+
+>>> result
+alph number
+a    one    0
+     two    1
+     three  2
+b    one    3
+     two    4
+     three  5
+c    one    6
+     two    7
+     three  8
+dtype: int32
+
+result.unstack()
+number one two three
+alph
+   a   0   1   2
+   b   3   4   5
+   c   6   7   8
+
+# 默认情况下, 数据重塑的操作都是最内层的, 也可以通过级别编号或名称来指定其他级别进行重塑操作
+>>> result.unstack(0)
+alph a b c
+number
+one 0 3 6
+two 1 4 7
+three 2 5 8
+
+>>> result.unstack('alph')
+alph  a b c
+number
+  one 0 3 6
+  two 1 4 7
+three 2 5 8
+
+# 不仅数据重塑的操作是最内层的, 操作的结果也会是旋转轴位于最低级别
+>>> df = DataFrame(np.arange(16).reshape(4,4), index=[['one', 'one', 'two', 'two'], ['a', 'b', 'a', 'b']], columns=[['apple', 'apple', 'orange', 'orange'], ['red', 'green', 'red', 'green']])
+
+>>> df
+        apple     orange
+        red green red green
+one a   0   1     2   3
+    b   4   5     6   7
+two a   8   9     10  11
+    b   12  13    14  15
+
+>>> df.stack()
+             apple orange
+one a green  1     3
+      red    0     2
+    b green  5     7
+      red    4     6
+two a green  9     11
+      red    8     10
+    b green  13    15
+      red    12    14
+
+>>> df.unstack()
+    apple      orange
+    red  green red   green
+    a b  a b   a b   a b
+one 0 4  1 5   2 6   3 7
+two 8 12 9 13  10 14 11 15
+```
+
+- 字符串方法
+```
+# 把数据分成两列
+df = DataFrame({'data': ['张三|男', '李四|女', '王五|女', '小明|男']})
+>>> df
+  data
+0 张三|男
+1 李四|女
+2 王五|女
+3 小明|男
+
+
+result = df['data'].apply(lambda x:Series(x.split('|')))
+>>> result
+  0   1
+0 张三 男
+1 李四 女
+2 王五 女
+3 小明 男
+
+# pandas中字段的str属性可以轻松调用字符串的方法, 并用到整个字段中(矢量化运算)
+new_df = df['data'].str.split('|')
+>>> new_df
+0 [张三, 男]
+1 [李四, 女]
+2 [王五, 女]
+3 [小明, 男]
+Name: data, dtype: object
+
+
+df['name'] = new_df.str[0]
+df['sex'] = new_df.str[1]
+>>> df
+data      name sex
+0 张三|男  张三  男
+1 李四|女  李四  女
+2 王五|女  王五  女
+3 小明|男  小明  男
+```
