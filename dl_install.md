@@ -3,7 +3,6 @@
 [推荐Linux (UBUNTU)系统] ([参考UBUNTU18.04安装教程](https://blog.csdn.net/baidu_36602427/article/details/86548203))
 
 - 安装NVIDIA显卡驱动
-
 [download NVIDIA driver](https://www.nvidia.cn/Download/index.aspx?lang=cn)
 
 ![nvidia](dl_install_img/nvidia.png)
@@ -11,7 +10,6 @@
 [UBUNTU系统下NVIDIA driver安装教程](https://jinghongkyq.github.io/install_nvidia_driver.html)
 
 - 安装CUDA: 加速程序
-
 [download cuda](https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exelocal)
 
 ![CUDA](dl_install_img/CUDA.png)
@@ -47,7 +45,6 @@ conda install pytorch torchvision torchaudio cudatoolkit=10.1 -c pytorch
 ![pytorch](dl_install_img/pytorch.png)
 
 - 安装TensorFlow
-
 [TensorFlow官网](https://tensorflow.google.cn/)
 ```
 # Requires the latest pip  
@@ -69,5 +66,4 @@ pip install tf-nightly
 - [TensorFlow官方教程](https://tensorflow.google.cn/learn)
 
 - 推荐安装Terminal IDE 
-
 [download terminus](https://www.termius.com/)

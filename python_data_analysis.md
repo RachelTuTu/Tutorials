@@ -1889,3 +1889,315 @@ data      name sex
 2 王五|女  王五  女
 3 小明|男  小明  男
 ```
+
+### 综合示例 -- Iris数据集 (数据分析中数据预处理的详细操作)
+- 数据来源: Iris(鸢尾花卉数据集). `sepal_length_cm`花萼长度, `sepal_width_cm`花萼宽度, `petal_length_cm`花瓣长度, `petal_width_cm`花瓣宽度. 通过这4个数据, 可以判断并分类出3中鸢尾花的类别.
+```
+from pandas import Series, DataFrame
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import seaborn as sns
+iris_data = pd.read_csv('D:\myproject\python_analysis_data\iris-data.csv')
+iris_data.head()
+```
+
+- 定义问题: 学习如何对数据进行清洗. 通过数据可视化和分析, 按照鸢尾花的特征分出鸢尾花的类别.
+- 数据清洗
+```
+# 对数据进行简单描述, 看其中是否有异常值
+# 共有150调数据, 通过每个字段的平均值和方差, 看不出有异常值.
+>>> iris_data.shape
+(150, 5)
+
+>>> iris_data.describe()
+sepal_length_cm sepal_width_cm petal_length_cm petal_width_cm
+count 150.000000 150.000000 150.000000 145.000000
+mean 5.644627 3.054667 3.758667 1.236552
+std 1.312781 0.433123 1.764420 0.755058
+min 0.055000 2.000000 1.000000 0.100000
+25% 5.100000 2.800000 1.600000 0.400000
+50% 5.700000 3.000000 4.350000 1.300000
+75% 6.400000 3.300000 5.100000 1.800000
+max 7.900000 4.400000 6.900000 2.500000
+
+# 查看class类别, 发现不是3中, 可能是由于拼写错误造成, 在这里修改
+>>> iris_data['class'].unique()
+array(['Iris-setosa', 'Iris-setossa', 'Iris-versicolor', 'versicolor', 'Iris-virginica'], dtype=object)
+
+>>> iris_data.loc[iris_data['class']=='versicolor', 'class'] = 'Iris-versicolor'
+>>> iris_data.loc[iris_data['class']=='Iris-setossa', 'class'] = 'Iris-setosa'
+
+>>> iris_data['class'].unique()
+array(['Iris-setosa', 'Iris-versicolor', 'Iris-virginica'], dtype=object)
+
+# 利用seaborn绘制散点图矩阵
+# 通过第一列可一件除, 有几个Iris-versicolor样本中的sepal_length_cm值偏移了大部分的点; 通过第二行可以看出, 一个Iris-setosa样本的sepal_width_cm值偏离了大部分的点
+>>> sns.pairplot(iris_data, hue='class')
+```
+![](data/image13.png?v=1&type=image)
+
+```
+# 通过对Iris-setosa的花萼宽度绘制直方图也能观测出异常
+>>> iris_data.loc[iris_data['class']=='Iris-setosa', 'sepal_width_cm'].hist()
+```
+![](data/image14.png?v=1&type=image)
+
+```
+# 这里对异常值产生的原因不够清楚, 所以直接对小于2.5cm的数据进行过滤
+>>> iris_data = iris_data.loc[(iris_data['class']!='Iris-setosa') | (iris_data['sepal_width_cm']>=2.5)]
+>>> iris_data.loc[iris_data['class']=='Iris-setosa', 'sepal_width_cm'].hist()
+```
+![](data/image15.png?v=1&type=image)
+
+```
+# 通过索引选取Iris-versicolor样本中sepal_length_cm值小于0.1的数据, 发现数据很小, 可能是单位错误. 这里输入的是以m为单位, 通过与其他数据比较, 初步认为可能是单位设置问题. 通过一下代码, 对数据乘以100
+>>> iris_data.loc[(iris_data['class']=='Iris-versicolor') & (iris_data['sepal_length_cm']<1.0), 'sepal_length_cm'] *= 100
+```
+
+```
+# 再看是否有缺失值. 
+# 发现花瓣宽度有5条缺失值, 由于3种分类数据样本均衡, 因此直接将缺失值进行删除处理
+>>> iris_data.isnull().sum()
+sepal_length_cm  0
+sepal_width_cm   0
+petal_length_cm  0
+petal_width_cm   5
+class 0
+dtype: int64
+
+>>> iris_data[iris_data['petal_width_cm'].isnull()]
+
+sepal_length_cm sepal_width_cm petal_length_cm petal_width_cm class
+7 5.0 3.4 1.5 NaN Iris-setosa
+8 4.4 2.9 1.4 NaN Iris-setosa
+9 4.9 3.1 1.5 NaN Iris-setosa
+10 5.4 3.7 1.5 NaN Iris-setosa
+11 4.8 3.4 1.6 NaN Iris-setosa
+
+>>> iris_data.dropna(inplace=True)
+```
+
+```
+# 最后对清洗好的数据进行存储, 以方便进行下一步分析
+>>> iris_data.to_csv('D:\myproject\python_analysis_data\iris_data_clean.csv', index=False)
+
+>>> iris_data = pd.read_csv(open('D:\myproject\python_analysis_data\iris_data_clean.csv'))
+
+>>> iris_data.head()
+sepal_length_cm sepal_width_cm petal_length_cm petal_width_cm class
+0 5.1 3.5 1.4 0.2 Iris-setosa
+1 4.9 3.0 1.4 0.2 Iris-setosa
+2 4.7 3.2 1.3 0.2 Iris-setosa
+3 4.6 3.1 1.5 0.2 Iris-setosa
+4 5.0 3.6 1.4 0.2 Iris-setosa
+
+>>> iris_data.shape
+(145, 5)
+```
+
+- 数据探索: 对处理好的数据绘制散点矩阵图. 可以看出在大部分情况下数据接近正态分布, 而且Iris-setosa与其他两种花是线性可分的, 其他两种花型可能需要通过非线性算法进行分类
+![](data/image16.png?v=1&type=image)
+
+## 数据分组与聚合
+### 数据分组
+- GroupBy技术用于数据分组运算, 运算核心为split-apply-combine. 首先, 数据集按照key(分组键)的方式分成小的数据片(split), 然后对每一个数据片进行操作, 如分类求和(apply), 最后将结果在组合起来形成新的数据集(combine).
+![](data/image17.png?v=1&type=image)
+
+```
+# 通过性别分别计算小费平均值
+tips = sns.load_dataset('tips')
+>>> tips.head()
+total_bill tip sex smoker day time size
+0 16.99 1.01 Female No Sun Dinner 2
+1 10.34 1.66 Male No Sun Dinner 3
+2 21.01 3.50 Male No Sun Dinner 3
+3 23.68 3.31 Male No Sun Dinner 2
+4 24.59 3.61 Female No Sun Dinner 4
+
+grouped = tips['tip'].groupby(tips['sex'])
+>>> grouped.mean()
+sex
+Male 3.089618
+Female 2.833448
+Name: tip, dtype: float64
+
+# 可通过多个分组键进行计算, 通过day和time计算小费平均值
+>>> date_mean=tips['tip'].groupby([tips['day'], tips['time']]).mean().
+>>> date_mean
+day time
+Thur Lunch  2.767705
+     Dinner 3.000000
+Fri  Lunch  2.382857
+     Dinner 2.940000
+Sat  Lunch  NaN
+     Dinner 2.993103
+Sun  Lunch  NaN
+     Dinner 3.255132
+Name: tip, dtype: float64
+```
+![](data/image18.png?v=1&type=image)
+
+```
+# GroupBy对象是可迭代的, 其构造为一组二元元祖
+for name, group in tips.groupby(tips['sex']): 
+    print(name)
+    print(group)
+
+
+Male
+total_bill tip sex smoker day time size
+2 21.01 3.50 Male No Sun Dinner 3
+3 23.68 3.31 Male No Sun Dinner 2
+5 25.29 4.71 Male No Sun Dinner 4
+6 8.77 2.00 Male No Sun Dinner 2
+.. ... ... ... ... ... ... ...
+236 12.60 1.00 Male Yes Sat Dinner 2
+237 32.83 1.17 Male Yes Sat Dinner 2
+239 29.03 5.92 Male No Sat Dinner 3
+241 22.67 2.00 Male Yes Sat Dinner 2
+242 17.82 1.75 Male No Sat Dinner 2
+[157 rows x 7 columns]
+(None, None)
+
+Female
+total_bill tip sex smoker day time size
+0 16.99 1.01 Female No Sun Dinner 2
+4 24.59 3.61 Female No Sun Dinner 4
+11 35.26 5.00 Female No Sun Dinner 4
+14 14.83 3.02 Female No Sun Dinner 2
+16 10.33 1.67 Female No Sun Dinner 3
+.. ... ... ... ... ... ... ...
+226 10.09 2.00 Female Yes Fri Lunch 2
+229 22.12 2.88 Female Yes Sat Dinner 2
+238 35.83 4.67 Female No Sat Dinner 3
+240 27.18 2.00 Female Yes Sat Dinner 2
+243 18.78 3.00 Female No Thur Dinner 2
+[87 rows x 7 columns]
+(None, None)
+```
+```
+# size方法可返回分组的大小
+>>> tips.groupby(tips['sex']).size()
+sex
+Male 157
+Female 87
+dtype: int64
+```
+
+- 上述groupby方法使用的分组键为Series. 分组键也支持其他格式. DataFrame数据的列索引名称可以作为分组键, 此时用于分组的对象必须是DataFrame数据本身.
+```
+smoker_mean = tips.groupby('smoker').mean()
+>>> smoker_mean
+total_bill tip size
+smoker
+Yes 20.756344 3.008710 2.408602
+No 19.188278 2.991854 2.668874
+```
+
+```
+# groupby对象也可通过索引获取tip列, 然后再进行聚合运算
+size_mean1 = tips['tip'].groupby(tips['size']).mean()
+size_mean2 = tips.groupby('size')['tip'].mean()
+
+>>> size_mean1
+size
+1 1.437500
+2 2.582308
+3 3.393158
+4 4.135405
+5 4.028000
+6 5.225000
+Name: tip, dtype: float64
+
+>>> size_mean2
+size
+1 1.437500
+2 2.582308
+3 3.393158
+4 4.135405
+5 4.028000
+6 5.225000
+Name: tip, dtype: float64
+```
+
+- 按列或元组分组: 分组键可以是长度适当的列表或元组(与DataFrame的行数一样). 即把列表或元组当做DataFrame的一列, 然后按其分组
+```
+df = DataFrame(np.arange(16).reshape(4,4))
+list1 = ['a', 'b', 'a', 'b']
+>>> df.groupby(list1).sum()
+0 1 2 3
+a 8 10 12 14
+b 16 18 20 22
+```
+
+- 按字典分组
+```
+>>> df = DataFrame(np.random.normal(size=(6,6)), index=['a', 'b', 'c', 'A', 'B', 'C'])
+>>> df
+0 1 2 3 4 5
+a 1.738100 1.458470 1.300792 1.465095 0.749702 0.412512
+b -0.442996 -0.910201 -0.004069 -0.926896 -0.093582 -1.663700
+c 1.002963 0.748730 -0.449901 0.340736 -0.500364 2.516332
+A -0.201381 0.624241 2.282778 -0.841512 -1.084919 0.340360
+B -1.753878 -0.420581 -0.785555 -0.426946 -0.344593 -1.956447
+C -1.420479 0.007309 -0.496645 -0.049867 -0.567657 -1.586869
+
+>>> dict1 = {'a': 'one', 'A': 'one', 'b': 'two', 'B': 'two', 'c': 'three', 'C': 'three'}
+
+>>> df.groupby(dict1).sum()
+0 1 2 3 4 5
+one 1.536719 2.082711 3.583570 0.623583 -0.335217 0.752872
+three -0.417516 0.756039 -0.946545 0.290869 -1.068021 0.929463
+two -2.196874 -1.330782 -0.789624 -1.353842 -0.438175 -3.620147
+```
+
+- 按函数分组
+```
+df = DataFrame(np.random.rand(4,4))
+
+>>> df
+0 1 2 3
+0 0.472121 0.930872 0.142072 0.650164
+1 0.997865 0.406583 0.705862 0.951324
+2 0.058544 0.758451 0.096920 0.218464
+3 0.924999 0.199871 0.636070 0.727598
+
+def jug(x): 
+	if x>=0: 
+		return 'a' 
+    else: 
+	    return 'b'
+
+df[3].groupby(df[3].map(jug)).sum()
+```
+
+```
+# 对于层次化索引, 可通过级别进行分组, 通过level参数, 输入编号或名称即可
+df = DataFrame(np.arange(16).reshape(4,4), 
+               index=[['one', 'one', 'two', 'two'], ['a', 'b', 'a', 'b']], 
+               columns=[['apple', 'apple', 'orange', 'orange'], ['red', 'green', 'red', green']])
+
+>>> df
+       apple     orange
+       red green red green
+one a  0   1     2   3
+    b  4   5     6   7
+two a  8   9     10  11
+    b  12  13    14  15
+
+>>> df.groupby(level=1).sum()
+  apple orange
+  red green red green
+a 8   10    12  14
+b 16  18    20  22
+
+# 在列上进行分组
+>>> df.groupby(level=1, axis=1).sum()
+      green red
+one a 4 2
+    b 12 10
+two a 20 18
+    b 28 26
+```
