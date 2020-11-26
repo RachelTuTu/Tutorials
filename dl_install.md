@@ -66,4 +66,4 @@ pip install tf-nightly
 - [TensorFlow官方教程](https://tensorflow.google.cn/learn)
 
 - 推荐安装Terminal IDE 
-[download terminus](https://www.termius.com/)
+[download terminus](https://github.com/Eugeny/terminus)
